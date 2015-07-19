@@ -1,25 +1,81 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research, Proj 1"
+author: "cammie partelow"
+date: "July 13, 2015"
+output: html_document
 ---
 
+This is the r markdown file for the first project in Reproducible Research. 
 
-## Loading and preprocessing the data
+Part 1 Calculate the mean total number of steps taken per day (ignore the missing values):
 
+Calculate the total number of steps taken per day
 
+Make a histogram of the total number of steps taken each day
 
-## What is mean total number of steps taken per day?
+Calculate and report the mean and median of the total number of steps taken per day
+import data
+```{r}
+dset <- read.csv("~/downloads/activity.csv")
+```
+summarize steps by date, create histogram, report mean & median
+```{r}
+sumSet <- aggregate(dset$steps, by=list(date=dset$date), FUN=sum, na.rm = TRUE)
+# alternate: tapply(dset$steps, dset$date, FUN=sum, na.rm = TRUE)
+sumSet
+hist(sumSet$x)
+mean(dset$steps, na.rm = TRUE)
+median(dset$steps, na.rm = TRUE)
+```
 
+Part 2 Determine average daily activity
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r, echo=FALSE}
+minAvg <- aggregate(dset$steps, by=list(interval=dset$interval), FUN=mean, na.rm = TRUE)
+tsPlot <- plot(minAvg$interval, minAvg$x, type = "l")
+```
 
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+not the best method, revisit when have internet/time
+```{r}
+minAvgMax <- max(minAvg$x)
+subset(minAvg, minAvg$x >= minAvgMax, select = c(interval, x))
+```
 
-## What is the average daily activity pattern?
+Part 3 Inputting Data
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r}
+library(plyr)
+naSet <- subset(dset, is.na(dset$steps))
+count(naSet[,1])
+```
 
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+fillSet <- dset
+fillSet$steps[is.na(fillSet$steps)] <- minAvg$x[match(fillSet$interval,minAvg$interval)][is.na(fillSet$steps)]
+```
 
+Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps? Now, there is a long tail with small values and a large set for the beginning.
+```{r}
+hist(fillSet$steps)
+```
 
-## Imputing missing values
+Part 4 Activity pattern differences on weekdays and weekends?
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
 
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+```{r}
+fillWeek <- data.frame(steps = fillSet$steps, interval = fillSet$interval, dow = ifelse(weekdays(as.Date(fillSet$date)) %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
+```
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+```{r, echo=FALSE}
+par(mfrow=c(2,1))
+weekdaySet <- subset(fillWeek, fillWeek$dow == "Weekday")
+weekdayAvg <- aggregate(weekdaySet$steps, by=list(interval=weekdaySet$interval), FUN=mean)
+tsPlotWD <- plot(weekdayAvg$interval, weekdayAvg$x, type = "l", sub = "Weekday", xlab = "Number of Steps", ylab = "Interval")
+weekendSet <- subset(fillWeek, fillWeek$dow == "Weekend")
+weekendAvg <- aggregate(weekendSet$steps, by=list(interval=weekendSet$interval), FUN=mean)
+tsPlotWE <- plot(weekendAvg$interval, weekendAvg$x, type = "l", sub = "Weekend", xlab = "Number of Steps", ylab = "Interval")
+```
